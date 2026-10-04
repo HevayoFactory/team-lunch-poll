@@ -20,3 +20,4 @@ current tally.
 whether they've voted, not the counts.
 - Voting is anonymous; only vote counts are ever shown, never who voted for
 what.
+

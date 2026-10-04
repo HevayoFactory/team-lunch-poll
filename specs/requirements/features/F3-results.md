@@ -10,3 +10,4 @@ Needs: F2.
 
 - When votes tie for first place, one of the tied options is picked at random
 as the winner.
+
