@@ -18,3 +18,4 @@ open — only one poll is open at a time.
 from a saved list of places.
 - A poll's options are fixed once created; the proposer cannot edit or cancel
 it.
+
