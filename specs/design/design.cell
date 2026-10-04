@@ -1,0 +1,14 @@
+title Team Lunch Poll
+
+component lunch-poll-webapp as "Lunch Poll" web-application
+component lunch-poll-api as "Lunch Poll API" service
+component lunch-poll-db as "Lunch Poll Database" database
+
+east user-auth as "Thunder Auth" identity-server
+
+north -> lunch-poll-webapp
+
+lunch-poll-webapp -> lunch-poll-api
+lunch-poll-webapp -> user-auth
+lunch-poll-api -> user-auth
+lunch-poll-api -> lunch-poll-db

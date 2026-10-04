@@ -1,0 +1,212 @@
+openapi: 3.0.3
+info:
+  title: Lunch Poll API
+  version: 0.1.0
+  description: Proposes the day's lunch poll, collects one vote per teammate, and closes it automatically at 11am.
+servers:
+  - url: /
+security:
+  - oauth2: []
+paths:
+  /polls/today:
+    get:
+      operationId: getTodaysPoll
+      summary: Today's poll, open or already closed, with its result once closed
+      security:
+        - oauth2: [polls:read]
+      responses:
+        '200':
+          description: Today's poll
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Poll'
+        '404':
+          description: No poll has been proposed for today
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Not signed in
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /polls:
+    get:
+      operationId: listPastPolls
+      summary: Past polls and their results, most recent first
+      security:
+        - oauth2: [polls:read-history]
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20, maximum: 100 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+      responses:
+        '200':
+          description: A page of past polls
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [count, data]
+                properties:
+                  count: { type: integer, description: total matching polls }
+                  next: { type: string, nullable: true, description: relative URI of the next page }
+                  previous: { type: string, nullable: true, description: relative URI of the previous page }
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Poll'
+        '401':
+          description: Not signed in
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      operationId: proposePoll
+      summary: Start today's poll with 2 to 5 lunch options
+      security:
+        - oauth2: [polls:propose]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePollRequest'
+      responses:
+        '201':
+          description: Poll created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Poll'
+        '400':
+          description: Fewer than 2 or more than 5 options
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: A poll is already open for today
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Not signed in
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /polls/{pollId}/votes:
+    post:
+      operationId: castVote
+      summary: Cast the caller's one vote on an open poll
+      security:
+        - oauth2: [polls:vote]
+      parameters:
+        - name: pollId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CastVoteRequest'
+      responses:
+        '201':
+          description: Vote recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Poll'
+        '400':
+          description: The poll is not open, or the option does not belong to it
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: No such poll
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: The caller already voted on this poll
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Not signed in
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  securitySchemes:
+    oauth2:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: /oauth2/authorize
+          tokenUrl: /oauth2/token
+          scopes:
+            polls:propose: Start a poll for the day
+            polls:vote: Cast a vote on the open poll
+            polls:read: See today's poll and its result
+            polls:read-history: Browse past polls and their results
+  schemas:
+    PollOption:
+      type: object
+      required: [id, label]
+      properties:
+        id: { type: string }
+        label: { type: string, description: free-text lunch option }
+        voteCount: { type: integer, nullable: true, description: null while the poll is still open }
+    Poll:
+      type: object
+      required: [id, day, status, options, hasVoted]
+      properties:
+        id: { type: string }
+        day: { type: string, format: date }
+        status: { type: string, enum: [open, closed] }
+        cutoffAt: { type: string, format: date-time, description: when voting closes }
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/PollOption'
+        hasVoted: { type: boolean, description: whether the calling teammate has voted }
+        winningOptionId: { type: string, nullable: true, description: set once closed; null if no votes were cast }
+        createdAt: { type: string, format: date-time }
+    CreatePollRequest:
+      type: object
+      required: [options]
+      properties:
+        options:
+          type: array
+          minItems: 2
+          maxItems: 5
+          items: { type: string }
+    CastVoteRequest:
+      type: object
+      required: [optionId]
+      properties:
+        optionId: { type: string }
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: integer, description: HTTP or application error code }
+        message: { type: string, description: short human-readable label }
+        description: { type: string, description: detailed explanation }
+        moreInfo: { type: string, description: URI to documentation }
