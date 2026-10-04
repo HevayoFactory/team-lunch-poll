@@ -1,0 +1,4 @@
+apiVersion = "agentic-engineer/v1"
+name = "team-lunch-poll"
+createdAt = "2026-10-04T12:41:10Z"
+idea = "A team lunch poll: an organiser proposes a few lunch options for a day, teammates vote once each, and everyone sees the winning option when voting closes at 11am."
