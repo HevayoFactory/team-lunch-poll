@@ -12,4 +12,4 @@ voting. \[org default\] Applies to: all.
 ## Open Questions
 
 1. Which timezone does "11am" refer to — the team's local timezone, or a
- fixed organisational timezone?
+fixed organisational timezone?
